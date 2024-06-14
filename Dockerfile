@@ -34,7 +34,7 @@ COPY --from=builder /usr/local /usr/local
 
 # 创建 drivers 目录并复制 ChromeDriver
 RUN mkdir -p /app/drivers
-COPY --from=builder /usr/bin/chromedriver /app/drivers/chromedriver
+COPY --from=builder /usr/bin/chromedriver /drivers/chromedriver
 
 # 复制应用程序代码
 COPY . /app
