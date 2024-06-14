@@ -8,6 +8,21 @@ WORKDIR /app
 COPY ./requirements.txt .
 RUN pip install --no-cache-dir -U -r requirements.txt
 
+# 添加 Google Chrome 的公钥
+RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
+
+# 添加 Google Chrome 的软件源
+RUN sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list'
+
+# 更新软件包列表
+RUN apt-get update
+
+# 安装 Google Chrome
+RUN apt-get install -y google-chrome-stable
+
+# 清理
+RUN rm -rf /var/lib/apt/lists/* && apt-get clean
+
 # 安装 Chrome 和 ChromeDriver 的依赖包
 RUN apt-get update && apt-get install -y \
     wget \
