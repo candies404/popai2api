@@ -1,47 +1,37 @@
-# 使用多阶段构建
-FROM python:3.9-alpine AS builder
+# 基于 Python 的 Alpine 镜像构建环境
+FROM python:3.12-alpine AS builder
 
 # 设置工作目录
 WORKDIR /app
 
-# 安装必要的依赖工具
-RUN apk add --no-cache --virtual .build-deps \
-    gcc \
-    musl-dev \
-    libffi-dev \
-    openssl-dev \
-    curl \
-    wget \
-    unzip && \
-    apk add --no-cache \
-    chromium && \
-    CHROMEDRIVER_VERSION=$(curl -sS chromedriver.storage.googleapis.com/LATEST_RELEASE) && \
-    wget -O /tmp/chromedriver.zip "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip" && \
-    unzip /tmp/chromedriver.zip -d /tmp/ && \
-    mv /tmp/chromedriver /usr/local/bin/chromedriver && \
-    chmod +x /usr/local/bin/chromedriver && \
-    rm /tmp/chromedriver.zip && \
-    pip install --no-cache-dir -r requirements.txt && \
-    apk del .build-deps
+# 复制 requirements.txt 并安装依赖
+COPY ./requirements.txt .
+RUN pip install --no-cache-dir -U -r requirements.txt
 
-# 最终镜像
-FROM python:3.9-alpine
-
-# 设置工作目录
-WORKDIR /app
-
-# 安装运行时必要的依赖工具
+# 下载 ChromeDriver 的依赖包
 RUN apk add --no-cache \
-    libstdc++ \
-    chromium
+    wget \
+    unzip \
+    bash \
+    libc6-compat
 
-# 复制 Python 环境和依赖
-COPY --from=builder /usr/local /usr/local
-
-# 创建 drivers 目录并复制 ChromeDriver
-RUN mkdir -p /app/app/drivers && \
-    cp /usr/local/bin/chromedriver /app/app/drivers/chromedriver && \
+# 下载并安装 ChromeDriver
+ARG CHROMEDRIVER_VERSION=114.0.5735.90
+RUN wget -O /tmp/chromedriver.zip https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip && \
+    mkdir -p /app/app/drivers && \
+    unzip /tmp/chromedriver.zip -d /app/app/drivers/ && \
+    rm /tmp/chromedriver.zip && \
     chmod +x /app/app/drivers/chromedriver
+
+# 基于 Python 的 Alpine 运行环境
+FROM python:3.12-alpine
+
+# 设置工作目录
+WORKDIR /app
+
+# 复制构建环境中的依赖和 ChromeDriver
+COPY --from=builder /usr/local /usr/local
+COPY --from=builder /app/app/drivers /app/app/drivers
 
 # 复制应用程序代码
 COPY . /app
@@ -49,10 +39,5 @@ COPY . /app
 # 暴露端口
 EXPOSE 3000
 
-# 切换到非 root 用户
-#RUN adduser -D -u 1000 chromedriver && \
-#    chown -R chromedriver:chromedriver /app
-#USER chromedriver
-
-# 入口点
+# 运行应用程序
 ENTRYPOINT ["python", "./main.py"]
