@@ -37,11 +37,11 @@ RUN apk add --no-cache \
 COPY --from=builder /usr/local /usr/local
 
 # 创建 drivers 目录并复制 ChromeDriver
-RUN mkdir -p /app/drivers
-COPY --from=builder /usr/bin/chromedriver /app/drivers/chromedriver
+RUN mkdir -p /app/app/drivers
+COPY --from=builder /usr/bin/chromedriver /app/app/drivers/chromedriver
 
 # 设置 chromedriver 可执行权限
-RUN chmod +x /app/drivers/chromedriver
+RUN chmod +x /app/app/drivers/chromedriver
 
 # 复制应用程序代码
 COPY . /app
