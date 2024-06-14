@@ -9,6 +9,7 @@ HISTORY_MSG_LIMIT = os.getenv("HISTORY_MSG_LIMIT", 0)
 HTTP_PROXIES = os.getenv("HTTP_PROXIES")
 HTTPS_PROXIES = os.getenv("HTTPS_PROXIES")
 SOCKS_PROXIES = os.getenv("SOCKS_PROXIES")
+RECAPTCHA_SECRET = os.getenv("RECAPTCHA_SECRET")
 
 
 def configure_logging():

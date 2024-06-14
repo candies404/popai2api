@@ -8,14 +8,18 @@ import re
 from collections import deque
 
 import requests
+import undetected_chromedriver as uc
 from flask import Response, jsonify
 from requests.exceptions import ProxyError
+from selenium.webdriver.support.wait import WebDriverWait
 
-from app.config import configure_logging, IMAGE_MODEL_NAMES, ProxyPool
+from app.config import configure_logging, IMAGE_MODEL_NAMES, ProxyPool, RECAPTCHA_SECRET
 
 configure_logging()
 proxy_pool = ProxyPool()
 current_token_index = 0
+project_dir = os.path.dirname(os.path.abspath(__file__))
+chromedriver_path = os.path.join(project_dir, 'drivers', 'chromedriver')
 
 
 def send_http_request(url, headers, data):
@@ -48,7 +52,7 @@ def send_chat_message(req, auth_token, channel_id, final_user_content, model_nam
         "Authorization": auth_token,
         "Content-Type": "application/json",
         "Device-Info": '{"web_id":"drBt-M9G_I9eKAgB8TdnY","baidu_id":"18f1fd3dc7749443876b69"}',
-        "Gtoken": "tgergrehabtdnj",
+        "Gtoken": get_recaptcha_token("https://www.popai.pro/", RECAPTCHA_SECRET),
         "Origin": "https://www.popai.pro",
         "Priority": "u=1, i",
         "Referer": "https://www.popai.pro/",
@@ -432,3 +436,47 @@ def request_with_proxy(url, headers, data, stream, files):
         logging.error(f"Proxy error occurred: {e}")
         raise Exception("Proxy error occurred")
     return response
+
+
+def get_recaptcha_token(url, site_key, action="LOGIN", headless=False, timeout=30):
+    logging.info("site_key: %s", site_key)
+
+    # 检查 chromedriver 是否存在
+    logging.info("chromedriver_path: %s", chromedriver_path)
+    if not os.path.exists(chromedriver_path):
+        raise FileNotFoundError("Chromedriver not found in the directory.")
+    else:
+        logging.info("Using chromedriver from project directory.")
+
+    # 初始化 undetected_chromedriver
+    options = uc.ChromeOptions()
+    if headless:
+        options.add_argument('--headless')
+
+    driver = uc.Chrome(options=options, driver_executable_path=chromedriver_path)
+
+    try:
+        # 打开目标网站
+        driver.get(url)
+
+        # 等待页面完全加载
+        WebDriverWait(driver, timeout).until(
+            lambda driver: driver.execute_script("return document.readyState") == "complete"
+        )
+        # 注入并执行 reCAPTCHA 解决脚本
+        recaptcha_script = f"""
+        try {{
+            var py_callback = arguments[arguments.length - 1];
+            const a = await window.grecaptcha.enterprise.execute("{site_key}", {{
+                action: "{action}"
+            }});
+            py_callback(a)
+        }} catch (a) {{
+            py_callback("")
+        }}
+        """
+        token = driver.execute_async_script(recaptcha_script)
+        logging.info("reCAPTCHA token: %s", token)
+        return token
+    finally:
+        driver.quit()
