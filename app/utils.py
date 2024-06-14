@@ -52,7 +52,7 @@ def send_chat_message(req, auth_token, channel_id, final_user_content, model_nam
         "Authorization": auth_token,
         "Content-Type": "application/json",
         "Device-Info": '{"web_id":"drBt-M9G_I9eKAgB8TdnY","baidu_id":"18f1fd3dc7749443876b69"}',
-        "Gtoken": get_recaptcha_token("https://www.popai.pro/", RECAPTCHA_SECRET),
+        "Gtoken": get_recaptcha_token("https://www.popai.pro/", RECAPTCHA_SECRET, "LOGIN", True),
         "Origin": "https://www.popai.pro",
         "Priority": "u=1, i",
         "Referer": "https://www.popai.pro/",

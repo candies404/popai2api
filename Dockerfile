@@ -13,7 +13,7 @@ RUN apk add --no-cache \
     wget \
     unzip \
     bash \
-    libc6-compat
+    chromium
 
 # 下载并安装 ChromeDriver
 ARG CHROMEDRIVER_VERSION=114.0.5735.90
@@ -32,6 +32,18 @@ WORKDIR /app
 # 复制构建环境中的依赖和 ChromeDriver
 COPY --from=builder /usr/local /usr/local
 COPY --from=builder /app/app/drivers /app/app/drivers
+
+# 安装 Chromium 浏览器及其依赖
+RUN apk add --no-cache \
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ttf-freefont
+
+# 设置环境变量，以便 ChromeDriver 可以找到 Chrome 浏览器
+ENV CHROME_BIN=/usr/bin/chromium-browser
+ENV CHROME_PATH=/usr/lib/chromium/
 
 # 复制应用程序代码
 COPY . /app
